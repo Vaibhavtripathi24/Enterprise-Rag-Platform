@@ -15,12 +15,17 @@ def initialize_rails() -> None:
     """
     global _rails
 
-    guard_llm = ChatOpenAI(api_key=settings.OPENAI_API_KEY, model="gpt-4o-mini")
+    if settings.GROQ_API_KEY:
+        guard_llm = ChatOpenAI(api_key=settings.GROQ_API_KEY, base_url="https://api.groq.com/openai/v1", model=settings.GROQ_MODEL)
+        model_desc = f"Groq {settings.GROQ_MODEL}"
+    else:
+        guard_llm = ChatOpenAI(api_key=settings.OPENAI_API_KEY, model="gpt-4o-mini")
+        model_desc = "gpt-4o-mini"
 
     config = RailsConfig.from_content(colang_content=COLANG_CONTENT, yaml_content=YAML_CONTENT)
 
     _rails = LLMRails(config, llm=guard_llm)
-    logfire.info("🛡️ NeMo Guardrails initialised (gpt-4o-mini).")
+    logfire.info(f"🛡️ NeMo Guardrails initialised ({model_desc}).")
 
 
 def guard(message: str) -> tuple[bool, str | None]:
@@ -37,16 +42,20 @@ def guard(message: str) -> tuple[bool, str | None]:
         return False, None
 
     with logfire.span("🛡️ Guardrails Check"):
-        result = _rails.generate(messages=[{"role": "user", "content": message}])
+        try:
+            result = _rails.generate(messages=[{"role": "user", "content": message}])
 
-        # NeMo returns {'role': 'assistant', 'content': '...'} — extract text
-        content = result.get("content", "") if isinstance(result, dict) else str(result)
+            # NeMo returns {'role': 'assistant', 'content': '...'} — extract text
+            content = result.get("content", "") if isinstance(result, dict) else str(result)
 
-        fired = any(indicator in content for indicator in RAIL_INDICATORS)
+            fired = any(indicator in content for indicator in RAIL_INDICATORS)
 
-        if fired:
-            logfire.info(f"🛡️ Guardrails fired | query='{message[:80]}'")
-            return True, content
+            if fired:
+                logfire.info(f"🛡️ Guardrails fired | query='{message[:80]}'")
+                return True, content
 
-        logfire.info("✅ Guardrails passed.")
-        return False, None
+            logfire.info("✅ Guardrails passed.")
+            return False, None
+        except Exception as e:
+            logfire.warning(f"⚠️ Guardrails check failed ({e}); bypassing gate.")
+            return False, None

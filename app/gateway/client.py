@@ -31,27 +31,29 @@ def _make_headers(feature: str = "rag") -> dict:
     )
 
 
-# OpenAI-compatible client routed through Portkey.
-# We use the OpenAI SDK directly because the native Portkey SDK does not
-# surface a first-class config_id constructor parameter; the header-based
-# approach works reliably with block_inline_config enabled.
-portkey_client = OpenAI(
-    api_key=settings.PORTKEY_API_KEY,
-    base_url=PORTKEY_GATEWAY_URL,
-    default_headers=_make_headers(),
-)
+if settings.GROQ_API_KEY:
+    portkey_client = OpenAI(
+        api_key=settings.GROQ_API_KEY,
+        base_url="https://api.groq.com/openai/v1",
+    )
+else:
+    portkey_client = OpenAI(
+        api_key=settings.PORTKEY_API_KEY,
+        base_url=PORTKEY_GATEWAY_URL,
+        default_headers=_make_headers(),
+    )
 
 
 def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
     """
-    Returns a Portkey-backed ChatOpenAI - a drop-in for LangChain nodes.
-
-    Why ChatOpenAI:
-      Portkey is a proxy. It exposes an OpenAI-compatible endpoint at PORTKEY_GATEWAY_URL.
-      ChatOpenAI supports base_url (points at Portkey) and default_headers (passes Portkey
-      auth + saved-config reference). The @slug/model-name format is Portkey-specific - the
-      upstream provider's own client does not understand it. Portkey is just in the middle.
+    Returns a ChatOpenAI client — using Groq if GROQ_API_KEY is set, or Portkey.
     """
+    if settings.GROQ_API_KEY:
+        return ChatOpenAI(
+            api_key=settings.GROQ_API_KEY,
+            base_url="https://api.groq.com/openai/v1",
+            model=settings.GROQ_MODEL,
+        )
     return ChatOpenAI(
         api_key=settings.PORTKEY_API_KEY,
         base_url=PORTKEY_GATEWAY_URL,
@@ -62,9 +64,13 @@ def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
 
 def get_async_openai_client(feature: str = "rag") -> AsyncOpenAI:
     """
-    Returns an async OpenAI client that routes through the Portkey gateway.
-    Use this for non-LangChain async LLM calls (e.g. async FastAPI endpoints).
+    Returns an async OpenAI client — using Groq if GROQ_API_KEY is set, or Portkey.
     """
+    if settings.GROQ_API_KEY:
+        return AsyncOpenAI(
+            api_key=settings.GROQ_API_KEY,
+            base_url="https://api.groq.com/openai/v1",
+        )
     return AsyncOpenAI(
         api_key=settings.PORTKEY_API_KEY,
         base_url=PORTKEY_GATEWAY_URL,

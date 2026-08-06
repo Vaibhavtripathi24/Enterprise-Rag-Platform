@@ -27,6 +27,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from slowapi.errors import RateLimitExceeded
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
@@ -128,9 +129,13 @@ class _AppLimiter:
                     return func(*args, **kwargs)
 
                 rule = rule_or_callable() if callable(rule_or_callable) else rule_or_callable
-                # Build the slowapi wrapper at request time so the limiter
-                # instance and storage backend are always current.
-                return limiter.limit(rule)(func)(*args, **kwargs)
+                try:
+                    return limiter.limit(rule)(func)(*args, **kwargs)
+                except (RateLimitExceeded, HTTPException):
+                    raise
+                except Exception as e:
+                    logfire.warning(f"⚠️ Rate limiter exception ({e}); proceeding with request.")
+                    return func(*args, **kwargs)
 
             return wrapper
 
@@ -279,6 +284,6 @@ def query(
                 content={
                     "request_id": request_id,
                     "status": "error",
-                    "message": "Failed to process request. Please try again later.",
+                    "message": f"Failed to process request: {e}",
                 },
             )

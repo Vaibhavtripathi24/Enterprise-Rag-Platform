@@ -100,16 +100,18 @@ def _check_qdrant() -> ConnectionResult:
 
 
 def _check_portkey_gateway() -> ConnectionResult:
-    """Verify Portkey LLM gateway responds to a minimal completion."""
+    """Verify LLM provider (Groq or Portkey) responds to a minimal completion."""
     try:
+        model = settings.GROQ_MODEL if settings.GROQ_API_KEY else f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini"
+        provider_name = "Groq LLM" if settings.GROQ_API_KEY else "Portkey gateway"
         resp = portkey_client.chat.completions.create(
-            model=f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini",
+            model=model,
             messages=[{"role": "user", "content": "Say hello in one word."}],
             max_completion_tokens=100,
             timeout=10,
         )
         if resp.choices and resp.choices[0].message.content is not None:
-            return ConnectionResult("llm_gateway", True, "Portkey gateway reachable")
+            return ConnectionResult("llm_gateway", True, f"{provider_name} reachable")
         raise RuntimeError("empty response")
     except Exception as e:
         logfire.warning(f"LLM gateway health check failed: {e}")

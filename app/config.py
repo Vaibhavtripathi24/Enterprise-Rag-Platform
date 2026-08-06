@@ -24,8 +24,12 @@ class Settings(BaseSettings):
     # --- JINA AI (embeddings + reranker) ---
     JINA_API_KEY: str
 
+    # --- GROQ FREE LLM ---
+    GROQ_API_KEY: str | None = None
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     # --- OPENAI LLM ---
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: str | None = None
     JUDGE_OPENAI_API_KEY: str | None = None
 
     # --- PORTKEY LLM GATEWAY ---

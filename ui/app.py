@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 # Load environment variables explicitly from the root directory
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
-load_dotenv(dotenv_path=env_path)
+load_dotenv(dotenv_path=env_path, override=True)
 
 
 # Initialize Logfire
@@ -92,7 +92,7 @@ if prompt := st.chat_input("Ask about your documentation..."):
                 try:
                     # DISTRIBUTED TRACE: Calling Backend
                     with logfire.span("📡 Calling RAG Backend"):
-                        base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+                        base_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
                         url = f"{base_url}/query"
                         payload = {"q": prompt, "thread_id": st.session_state.session_id}
                         headers = {
@@ -108,6 +108,9 @@ if prompt := st.chat_input("Ask about your documentation..."):
                     if data.get("status") == "Blocked by guardrails.":
                         status.update(label="🛡️ Blocked by guardrails", state="complete", expanded=False)
                         full_answer = data.get("answer", "Blocked by guardrails.")
+                    elif data.get("status") == "error" or response.status_code != 200:
+                        status.update(label="❌ Error", state="error", expanded=False)
+                        full_answer = f"⚠️ **Error**: {data.get('message', 'Failed to process request.')}"
                     # Modern synchronous response: answer + thought_process + sources.
                     elif "answer" in data:
                         status.update(label="✅ Answer Synthesized", state="complete", expanded=False)

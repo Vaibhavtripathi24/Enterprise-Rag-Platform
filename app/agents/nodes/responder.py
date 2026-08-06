@@ -95,7 +95,8 @@ def generate_node(state: AgentState):
 )
 def _generate_response(prompt: str):
     """Call the LLM gateway with retry logic for transient failures."""
+    model = settings.GROQ_MODEL if settings.GROQ_API_KEY else f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini"
     return portkey_client.chat.completions.create(
-        model=f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini",
+        model=model,
         messages=[{"role": "user", "content": prompt}],
     )
