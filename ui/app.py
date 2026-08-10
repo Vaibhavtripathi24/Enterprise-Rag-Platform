@@ -7,6 +7,17 @@ try:
 except ImportError:
     logfire = None
 
+if logfire is None:
+    from contextlib import nullcontext
+    class _DummyLogfire:
+        def info(self, *args, **kwargs): pass
+        def warn(self, *args, **kwargs): pass
+        def warning(self, *args, **kwargs): pass
+        def error(self, *args, **kwargs): pass
+        def span(self, *args, **kwargs): return nullcontext()
+        def configure(self, *args, **kwargs): pass
+    logfire = _DummyLogfire()
+
 import requests
 import streamlit as st
 try:
@@ -30,7 +41,7 @@ try:
     if not token:
         print("ERROR: LOGFIRE_TOKEN is empty or None!")
         LOGFIRE_STATUS = "Standby (LOGFIRE_TOKEN not set)"
-    else:
+    elif hasattr(logfire, "configure"):
         logfire.configure(
             token=token,
             advanced=logfire.AdvancedOptions(base_url=base_url) if base_url else None,
@@ -38,7 +49,7 @@ try:
         LOGFIRE_STATUS = "Connected & Tracing"
 except Exception as e:
     print(f"Logfire Init Error in UI: {e}")
-    LOGFIRE_STATUS = f"Standby (Error: {e})"
+    LOGFIRE_STATUS = f"Standby ({e})"
 
 
 # --- PAGE CONFIG ---
