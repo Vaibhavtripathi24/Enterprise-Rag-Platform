@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     )
 
     # --- JINA AI (embeddings + reranker) ---
-    JINA_API_KEY: str
+    JINA_API_KEY: str = ""
 
     # --- GROQ FREE LLM ---
     GROQ_API_KEY: str | None = None
@@ -33,24 +33,24 @@ class Settings(BaseSettings):
     JUDGE_OPENAI_API_KEY: str | None = None
 
     # --- PORTKEY LLM GATEWAY ---
-    PORTKEY_API_KEY: str
+    PORTKEY_API_KEY: str = ""
     PORTKEY_PRIMARY_SLUG: str = "marathon-api"
     PORTKEY_FALLBACK_SLUG: str = "anthropic-fallback"
     # Portkey saved config is referenced by its system-generated `pc-...` ID.
     # Required when block_inline_config is enabled on the workspace.
-    PORTKEY_PRIMARY_CONFIG_ID: str
+    PORTKEY_PRIMARY_CONFIG_ID: str = ""
 
     # --- QDRANT VECTOR DB ---
-    QDRANT_URL: str = Field(validation_alias=AliasChoices("QDRANT_URL", "QDRANT_CLUSTER_ENDPOINT"))
+    QDRANT_URL: str = Field(default="http://localhost:6333", validation_alias=AliasChoices("QDRANT_URL", "QDRANT_CLUSTER_ENDPOINT"))
     QDRANT_API_KEY: str | None = None
     QDRANT_COLLECTION: str = "enterprise_rag"
 
     # --- NEON SERVERLESS POSTGRES (LangGraph checkpointer) ---
-    NEON_DB_URL: str
+    NEON_DB_URL: str = ""
 
     # --- UPSTASH REDIS (rate limiting) ---
-    UPSTASH_REDIS_REST_URL: str
-    UPSTASH_REDIS_REST_TOKEN: str
+    UPSTASH_REDIS_REST_URL: str = ""
+    UPSTASH_REDIS_REST_TOKEN: str = ""
 
     # --- API SAFETY ---
     API_KEY: str | None = Field(default=None, alias="RAG_API_KEY")
@@ -80,11 +80,8 @@ class Settings(BaseSettings):
 
     @property
     def postgres_uri(self) -> str:
-        """LangGraph Postgres checkpointer URI (Neon).
-
-        Serverless Postgres closes idle connections, so append TCP keepalive
-        options to keep the connection pool healthy between requests.
-        """
+        if not self.NEON_DB_URL:
+            return ""
         base = self.NEON_DB_URL.rstrip("/")
         keepalive = "keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=5"
         if "?" in base:
@@ -93,12 +90,8 @@ class Settings(BaseSettings):
 
     @property
     def redis_url(self) -> str:
-        """TLS Redis URL derived from Upstash REST credentials.
-
-        Upstash exposes the same host for REST and TLS Redis. The REST token is
-        used as the Redis password under the default username. The result is
-        passed to `limits` for rate limiting and to the health checker.
-        """
+        if not self.UPSTASH_REDIS_REST_URL or not self.UPSTASH_REDIS_REST_TOKEN:
+            return ""
         host = self.UPSTASH_REDIS_REST_URL.replace("https://", "").rstrip("/")
         token = quote(self.UPSTASH_REDIS_REST_TOKEN, safe="")
         netloc = f"default:{token}@{host}"
