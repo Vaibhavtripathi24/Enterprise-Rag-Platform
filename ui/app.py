@@ -52,6 +52,31 @@ except Exception as e:
     LOGFIRE_STATUS = f"Standby ({e})"
 
 
+from contextlib import nullcontext
+
+def safe_span(name, **kwargs):
+    if logfire and hasattr(logfire, "span") and LOGFIRE_STATUS == "Connected & Tracing":
+        try:
+            return logfire.span(name, **kwargs)
+        except Exception:
+            pass
+    return nullcontext()
+
+def safe_log_info(msg):
+    if logfire and hasattr(logfire, "info") and LOGFIRE_STATUS == "Connected & Tracing":
+        try:
+            logfire.info(msg)
+        except Exception:
+            pass
+
+def safe_log_warn(msg):
+    if logfire and hasattr(logfire, "warn") and LOGFIRE_STATUS == "Connected & Tracing":
+        try:
+            logfire.warn(msg)
+        except Exception:
+            pass
+
+
 # --- PAGE CONFIG ---
 st.set_page_config(
     page_title="Enterprise Agentic RAG",
@@ -67,7 +92,7 @@ USER_AVATAR = "👤"
 # --- SESSION MANAGEMENT ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-    logfire.info(f"✨ New User Session Created: {st.session_state.session_id}")
+    safe_log_info(f"✨ New User Session Created: {st.session_state.session_id}")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -81,7 +106,7 @@ with st.sidebar:
     st.info(f"Memory ID: {st.session_state.session_id[:8]}")
 
     if st.button("🗑️ Clear History & Memory", width="stretch", type="primary"):
-        logfire.warn(f"🗑️ Memory Wipe Triggered for session: {st.session_state.session_id}")
+        safe_log_warn(f"🗑️ Memory Wipe Triggered for session: {st.session_state.session_id}")
         st.session_state.messages = []
         st.session_state.session_id = str(uuid.uuid4())
         st.rerun()
@@ -99,7 +124,7 @@ for message in st.session_state.messages:
 # Chat Input
 if prompt := st.chat_input("Ask about your documentation..."):
     # START TRACE: User Interaction
-    with logfire.span("💬 User Chat Interaction", user_query=prompt, session_id=st.session_state.session_id):
+    with safe_span("💬 User Chat Interaction", user_query=prompt, session_id=st.session_state.session_id):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(prompt)
@@ -148,7 +173,7 @@ if prompt := st.chat_input("Ask about your documentation..."):
                         result_data = None
                         max_attempts = 60
                         for attempt in range(max_attempts):
-                            with logfire.span("🔄 Polling RAG job", job_id=job_id, attempt=attempt):
+                            with safe_span("🔄 Polling RAG job", job_id=job_id, attempt=attempt):
                                 poll_resp = requests.get(poll_url, headers=headers, timeout=30)
                                 poll_resp.raise_for_status()
                                 poll_data = poll_resp.json()
