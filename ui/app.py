@@ -29,6 +29,15 @@ except ImportError:
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv(dotenv_path=env_path, override=True)
 
+# Sync Streamlit Cloud secrets to os.environ seamlessly
+try:
+    if hasattr(st, "secrets"):
+        for k, v in st.secrets.items():
+            if isinstance(v, (str, int, float, bool)):
+                os.environ[k] = str(v)
+except Exception:
+    pass
+
 
 # Initialize Logfire
 LOGFIRE_STATUS = "Unknown"
