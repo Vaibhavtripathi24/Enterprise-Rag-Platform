@@ -112,7 +112,7 @@ with st.sidebar:
     st.success(f"Logfire: {LOGFIRE_STATUS}")
     st.info(f"Memory ID: {st.session_state.session_id[:8]}")
 
-    if st.button("🗑️ Clear History & Memory", width="stretch", type="primary"):
+    if st.button("🗑️ Clear History & Memory", key="clear_memory_btn", width="stretch", type="primary"):
         safe_log_warn(f"🗑️ Memory Wipe Triggered for session: {st.session_state.session_id}")
         st.session_state.messages = []
         st.session_state.session_id = str(uuid.uuid4())
