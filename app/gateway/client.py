@@ -40,7 +40,7 @@ elif settings.PORTKEY_PRIMARY_CONFIG_ID:
     )
 else:
     portkey_client = OpenAI(
-        api_key=settings.OPENAI_API_KEY or "dummy_key",
+        api_key=settings.OPENAI_API_KEY or "sk-dummy-key-for-initial-setup",
     )
 
 
@@ -62,7 +62,7 @@ def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
             default_headers=_make_headers(feature),
         )
     return ChatOpenAI(
-        api_key=settings.OPENAI_API_KEY or "dummy_key",
+        api_key=settings.OPENAI_API_KEY or "sk-dummy-key-for-initial-setup",
         model="gpt-4o-mini",
     )
 
@@ -83,7 +83,7 @@ def get_async_openai_client(feature: str = "rag") -> AsyncOpenAI:
             default_headers=_make_headers(feature),
         )
     return AsyncOpenAI(
-        api_key=settings.OPENAI_API_KEY or "dummy_key",
+        api_key=settings.OPENAI_API_KEY or "sk-dummy-key-for-initial-setup",
     )
 
 

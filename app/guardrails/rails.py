@@ -19,7 +19,8 @@ def initialize_rails() -> None:
         guard_llm = ChatOpenAI(api_key=settings.GROQ_API_KEY, base_url="https://api.groq.com/openai/v1", model=settings.GROQ_MODEL)
         model_desc = f"Groq {settings.GROQ_MODEL}"
     else:
-        guard_llm = ChatOpenAI(api_key=settings.OPENAI_API_KEY, model="gpt-4o-mini")
+        api_key = settings.OPENAI_API_KEY or "sk-dummy-key-for-initial-setup"
+        guard_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
         model_desc = "gpt-4o-mini"
 
     config = RailsConfig.from_content(colang_content=COLANG_CONTENT, yaml_content=YAML_CONTENT)
