@@ -30,9 +30,8 @@ pypdf==6.14.2
 beautifulsoup4==4.15.0
 pdfplumber==0.11.10
 
-# --- OBSERVABILITY & GUARDRAILS ---
+# --- OBSERVABILITY & LOGGING ---
 logfire==4.39.0
 logfire[fastapi,requests]==4.39.0
 loguru==0.7.3
-nemoguardrails==0.23.0
 portkey-ai==2.3.4

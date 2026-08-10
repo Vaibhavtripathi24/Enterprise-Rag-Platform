@@ -1,11 +1,15 @@
-import logfire
-from langchain_openai import ChatOpenAI
-from nemoguardrails import LLMRails, RailsConfig
+try:
+    from nemoguardrails import LLMRails, RailsConfig
+    NEMO_AVAILABLE = True
+except ImportError:
+    LLMRails = None
+    RailsConfig = None
+    NEMO_AVAILABLE = False
 
 from app.config import settings
 from app.guardrails.colang_rules import COLANG_CONTENT, RAIL_INDICATORS, YAML_CONTENT
 
-_rails: LLMRails | None = None
+_rails = None
 
 
 def initialize_rails() -> None:
@@ -16,8 +20,10 @@ def initialize_rails() -> None:
     logfire.info("🛡️ NeMo Guardrails registered for lazy initialization.")
 
 
-def _get_rails() -> LLMRails:
+def _get_rails():
     global _rails
+    if not NEMO_AVAILABLE:
+        return None
     if _rails is not None:
         return _rails
 
@@ -33,18 +39,14 @@ def _get_rails() -> LLMRails:
 
 
 def guard(message: str) -> tuple[bool, str | None]:
-    """
-    Run a user message through the NeMo rails gate.
+    if not NEMO_AVAILABLE:
+        return False, None
 
-    Returns:
-        (True,  rail_response) — a rail fired; return this response immediately,
-                                skip the RAG pipeline entirely.
-        (False, None)          — message is clean; proceed to LangGraph.
-    """
-    with logfire.span("🛡️ Guardrails Check"):
-        try:
-            rails = _get_rails()
-            result = rails.generate(messages=[{"role": "user", "content": message}])
+    try:
+        rails = _get_rails()
+        if rails is None:
+            return False, None
+        result = rails.generate(messages=[{"role": "user", "content": message}])
 
             # NeMo returns {'role': 'assistant', 'content': '...'} — extract text
             content = result.get("content", "") if isinstance(result, dict) else str(result)
