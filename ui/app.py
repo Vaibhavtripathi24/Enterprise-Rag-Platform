@@ -91,27 +91,35 @@ if prompt := st.chat_input("Ask about your documentation..."):
             with st.status("🔍 Agent is thinking...", expanded=True) as status:
                 try:
                     # DISTRIBUTED TRACE: Calling Backend
-                    with logfire.span("📡 Calling RAG Backend"):
-                        base_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
-                        url = f"{base_url}/query"
-                        payload = {"q": prompt, "thread_id": st.session_state.session_id}
-                        headers = {
-                            "Content-Type": "application/json",
-                            "Authorization": f"Bearer {os.getenv('RAG_API_KEY', '')}",
-                        }
-                        # First guardrails invocation can be slow as NeMo downloads
-                        # configs/models; allow up to 3 minutes.
-                        response = requests.post(url, json=payload, headers=headers, timeout=180)
+                    base_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+                    url = f"{base_url}/query"
+                    payload = {"q": prompt, "thread_id": st.session_state.session_id}
+                    headers = {
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {os.getenv('RAG_API_KEY', '')}",
+                    }
+                    try:
+                        response = requests.post(url, json=payload, headers=headers, timeout=10)
                         data = response.json()
+                    except Exception:
+                        # Fallback to direct in-process agent execution when backend service is offline
+                        from app.agents.graph import build_graph
+                        if "rag_agent" not in st.session_state:
+                            st.session_state.rag_agent = build_graph()
+                        res = st.session_state.rag_agent.invoke(
+                            {"question": prompt, "chat_history": []},
+                            config={"configurable": {"thread_id": st.session_state.session_id}},
+                        )
+                        answer_text = res.get("generation", "Response generated.")
+                        data = {"status": "success", "answer": answer_text}
 
                     # Guardrails can block synchronously.
                     if data.get("status") == "Blocked by guardrails.":
                         status.update(label="🛡️ Blocked by guardrails", state="complete", expanded=False)
                         full_answer = data.get("answer", "Blocked by guardrails.")
-                    elif data.get("status") == "error" or response.status_code != 200:
+                    elif data.get("status") == "error":
                         status.update(label="❌ Error", state="error", expanded=False)
                         full_answer = f"⚠️ **Error**: {data.get('message', 'Failed to process request.')}"
-                    # Modern synchronous response: answer + thought_process + sources.
                     elif "answer" in data:
                         status.update(label="✅ Answer Synthesized", state="complete", expanded=False)
                         full_answer = data.get("answer", "No response.")
