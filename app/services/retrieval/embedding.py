@@ -67,8 +67,7 @@ def _init():
         _active_model = None  # Jina API is stateless; no local model to keep
         _model_type = "jina"
     else:
-        _active_model = _load_fallback()
-        _model_type = "fallback"
+        _model_type = "fallback"  # Lazy load fallback model only when required
 
 
 # ── Public helpers ─────────────────────────────────────────────────────────────
@@ -130,6 +129,9 @@ def _embed_jina(texts: list[str], task: str) -> list[list[float]]:
 
 def _embed_fallback_batch(texts: list[str]) -> list[list[float]]:
     """Embed texts using the local mxbai model."""
+    global _active_model
+    if _active_model is None:
+        _active_model = _load_fallback()
     embeddings = _active_model.encode(texts, show_progress_bar=False)
     return embeddings.tolist()
 
