@@ -2,6 +2,32 @@ import os
 import time
 import uuid
 
+import requests
+import streamlit as st
+
+# --- PAGE CONFIG (MUST BE VERY FIRST STREAMLIT COMMAND) ---
+st.set_page_config(
+    page_title="Enterprise Agentic RAG",
+    page_icon="🤖",
+    layout="wide",
+)
+
+try:
+    from dotenv import load_dotenv
+    env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
+    load_dotenv(dotenv_path=env_path, override=True)
+except Exception:
+    pass
+
+# Sync Streamlit Cloud secrets to os.environ seamlessly
+try:
+    if hasattr(st, "secrets"):
+        for k, v in st.secrets.items():
+            if isinstance(v, (str, int, float, bool)):
+                os.environ[k] = str(v)
+except Exception:
+    pass
+
 try:
     import logfire
 except ImportError:
@@ -18,27 +44,6 @@ if logfire is None:
         def configure(self, *args, **kwargs): pass
         def AdvancedOptions(self, *args, **kwargs): return None
     logfire = _DummyLogfire()
-
-import requests
-import streamlit as st
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    load_dotenv = lambda *args, **kwargs: None
-
-# Load environment variables explicitly from the root directory
-env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
-load_dotenv(dotenv_path=env_path, override=True)
-
-# Sync Streamlit Cloud secrets to os.environ seamlessly
-try:
-    if hasattr(st, "secrets"):
-        for k, v in st.secrets.items():
-            if isinstance(v, (str, int, float, bool)):
-                os.environ[k] = str(v)
-except Exception:
-    pass
-
 
 # Initialize Logfire
 LOGFIRE_STATUS = "Unknown"
@@ -85,13 +90,6 @@ def safe_log_warn(msg):
         except Exception:
             pass
 
-
-# --- PAGE CONFIG ---
-st.set_page_config(
-    page_title="Enterprise Agentic RAG",
-    page_icon="🤖",
-    layout="wide",
-)
 
 # --- AVATARS ---
 AI_AVATAR = "🤖"
