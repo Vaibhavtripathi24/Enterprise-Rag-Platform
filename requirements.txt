@@ -1,71 +1,38 @@
 # ==============================================================================
-# ENTERPRISE AGENTIC RAG - REQUIREMENTS (Local, No GCP)
+# ENTERPRISE AGENTIC RAG - REQUIREMENTS (Optimized Pinned Release)
 # ==============================================================================
 
 # --- CORE API & WEB FRAMEWORK ---
-fastapi                     # High-performance web framework for the API
-uvicorn[standard]           # ASGI server to run the FastAPI app
-python-dotenv               # For loading configuration from .env files
-requests                    # HTTP library for internal/external API calls
-streamlit                   # Frontend dashboard for the chat interface
-numpy                       # Numerical processing
-pytz                        # Timezone handling for logs
-nest-asyncio                # Support for nested async loops in notebooks/streamlit
-
-# --- JINA API EMBEDDINGS + LOCAL FALLBACK ---
-sentence-transformers       # Local fallback embeddings (mxbai-embed-large-v1)
-torch                        # Required by sentence-transformers
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+python-dotenv==1.2.2
+requests==2.34.2
+streamlit==1.60.0
+numpy==2.4.6
+pytz==2026.3.post1
+nest-asyncio==1.6.0
 
 # --- VECTOR DB & RETRIEVAL ---
-qdrant-client               # Vector Database for semantic search
+qdrant-client==1.18.0
 
 # --- LANGCHAIN & AGENTIC ORCHESTRATION ---
-langchain                   # Core LLM orchestration
-langgraph                   # State-machine logic for cyclic agent flows
-langchain-google-vertexai   # Required shim for NeMo Guardrails internal import (no GCP credentials needed)
-langchain-community         # Community-contributed tools and loaders
-langchain-openai            # OpenAI-compatible layer (used by Portkey gateway + guardrails)
-pydantic>=2.0.0             # Data validation and settings management
-pydantic-settings           # Pydantic BaseSettings with dotenv support
+langchain==1.3.14
+langgraph==1.2.10
+langsmith==0.10.15
+langchain-core==1.5.3
+langchain-community==0.4.2
+langchain-openai==1.4.1
+pydantic==2.13.4
+pydantic-settings==2.14.2
 
 # --- DATA INGESTION & DOCUMENT PARSING ---
-unstructured                # Base library for DOCX/PPTX partitioning
-python-pptx                 # Parser for PowerPoint files
-python-docx                 # Parser for Word documents
-pypdf                       # Local PDF text extraction (replaces Document AI)
-beautifulsoup4              # High-speed HTML text extraction
-pdfplumber                  # Fallback PDF parser for scanned/complex layouts
+pypdf==6.14.2
+beautifulsoup4==4.15.0
+pdfplumber==0.11.10
 
-# --- OBSERVABILITY & DISTRIBUTED TRACING ---
-langsmith                   # Specialized tracing for LangChain/LangGraph
-logfire                     # Base Logfire SDK
-logfire[fastapi,requests]   # Pydantic Logfire — FastAPI + requests instrumentation
-loguru                      # Enhanced logging for Python
-
-# --- GUARDRAILS ---
-nemoguardrails              # NVIDIA NeMo Guardrails for input/output safety rails
-langchain-nvidia-ai-endpoints # LangChain integration with NVIDIA AI Endpoints
-
-# --- LLM GATEWAY ---
-portkey-ai                  # Portkey Gateway for unified LLM routing, fallbacks & observability
-
-# --- PRODUCTION PERSISTENCE & RELIABILITY ---
-langgraph-checkpoint-postgres  # Postgres-backed LangGraph checkpointer
-psycopg-pool                   # Connection pool for PostgresSaver
-psycopg-binary                 # PostgreSQL driver
-tenacity                       # Retry-with-backoff for external calls
-slowapi                        # Redis-backed API rate limiting (Limiter class)
-redis                          # Redis client for rate limiting
-prometheus-client              # Prometheus metrics exposition
-prometheus-fastapi-instrumentator  # Automatic FastAPI request metrics
-
-# --- DEV / CI ---
-ruff                           # Fast Python linter and formatter
-
-# --- EVALUATION (EVALS) ---
-ragas                       # RAG-specific evaluation metrics (Faithfulness, Relevancy, Recall)
-deepeval                    # Pytest-compatible test runner wrapping RAGAS & safety metrics
-langfuse                    # Live production monitoring, tracing & user feedback collection
-
-# --- EMBEDDINGS (SENTENCE TRANSFORMERS) ---
-sentence-transformers       # Local fallback embeddings (mxbai-embed-large-v1)
+# --- OBSERVABILITY & GUARDRAILS ---
+logfire==4.39.0
+logfire[fastapi,requests]==4.39.0
+loguru==0.7.3
+nemoguardrails==0.23.0
+portkey-ai==2.3.4
