@@ -16,6 +16,7 @@ if logfire is None:
         def error(self, *args, **kwargs): pass
         def span(self, *args, **kwargs): return nullcontext()
         def configure(self, *args, **kwargs): pass
+        def AdvancedOptions(self, *args, **kwargs): return None
     logfire = _DummyLogfire()
 
 import requests
@@ -41,24 +42,23 @@ except Exception:
 
 # Initialize Logfire
 LOGFIRE_STATUS = "Unknown"
-try:
-    token = os.getenv("LOGFIRE_TOKEN")
-    base_url = os.getenv("LOGFIRE_BASE_URL")
-    # EU Logfire v2 tokens must hit the EU endpoint.
-    if not base_url and token and token.startswith("pylf_v2_eu_"):
-        base_url = "https://logfire-eu.pydantic.dev"
-    if not token:
-        print("ERROR: LOGFIRE_TOKEN is empty or None!")
-        LOGFIRE_STATUS = "Standby (LOGFIRE_TOKEN not set)"
-    elif hasattr(logfire, "configure"):
-        logfire.configure(
+if os.getenv("LOGFIRE_TOKEN"):
+    try:
+        import logfire as _real_logfire
+        token = os.getenv("LOGFIRE_TOKEN")
+        base_url = os.getenv("LOGFIRE_BASE_URL")
+        if not base_url and token and token.startswith("pylf_v2_eu_"):
+            base_url = "https://logfire-eu.pydantic.dev"
+        _real_logfire.configure(
             token=token,
-            advanced=logfire.AdvancedOptions(base_url=base_url) if base_url else None,
+            advanced=_real_logfire.AdvancedOptions(base_url=base_url) if base_url else None,
         )
+        logfire = _real_logfire
         LOGFIRE_STATUS = "Connected & Tracing"
-except Exception as e:
-    print(f"Logfire Init Error in UI: {e}")
-    LOGFIRE_STATUS = f"Standby ({e})"
+    except Exception as e:
+        LOGFIRE_STATUS = f"Standby ({e})"
+else:
+    LOGFIRE_STATUS = "Standby (LOGFIRE_TOKEN not set)"
 
 
 from contextlib import nullcontext
@@ -155,15 +155,34 @@ if prompt := st.chat_input("Ask about your documentation..."):
                         data = response.json()
                     except Exception:
                         # Fallback to direct in-process agent execution when backend service is offline
-                        from app.agents.graph import build_graph
-                        if "rag_agent" not in st.session_state:
-                            st.session_state.rag_agent = build_graph()
-                        res = st.session_state.rag_agent.invoke(
-                            {"question": prompt, "chat_history": []},
-                            config={"configurable": {"thread_id": st.session_state.session_id}},
-                        )
-                        answer_text = res.get("generation", "Response generated.")
-                        data = {"status": "success", "answer": answer_text}
+                        from app.guardrails.rails import guard
+                        rail_fired, rail_response = guard(prompt)
+                        if rail_fired:
+                            data = {
+                                "status": "Blocked by guardrails.",
+                                "answer": rail_response or "Blocked by guardrails.",
+                                "thought_process": ["Intent: Guardrails Fired", "Retrieval: Skipped"],
+                                "sources": [],
+                            }
+                        else:
+                            from app.agents.graph import build_graph
+                            if "rag_agent" not in st.session_state:
+                                st.session_state.rag_agent = build_graph()
+                            initial_state = {
+                                "messages": [{"role": "user", "content": prompt}],
+                                "current_query": prompt,
+                                "documents": [],
+                                "plan": ["Start"],
+                                "status": "Initializing Graph...",
+                            }
+                            config = {"configurable": {"thread_id": st.session_state.session_id}}
+                            final_output = st.session_state.rag_agent.invoke(initial_state, config=config)
+                            data = {
+                                "status": "success",
+                                "answer": final_output.get("final_answer", "Response generated."),
+                                "thought_process": final_output.get("plan", []),
+                                "sources": final_output.get("documents", []),
+                            }
 
                     # Guardrails can block synchronously.
                     if data.get("status") == "Blocked by guardrails.":
