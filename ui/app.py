@@ -129,7 +129,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Chat Input
-if prompt := st.chat_input("Ask about your documentation..."):
+if prompt := st.chat_input("Ask about your documentation...", key="user_chat_input"):
     # START TRACE: User Interaction
     with safe_span("💬 User Chat Interaction", user_query=prompt, session_id=st.session_state.session_id):
         st.session_state.messages.append({"role": "user", "content": prompt})
