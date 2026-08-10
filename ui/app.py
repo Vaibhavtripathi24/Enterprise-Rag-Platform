@@ -2,7 +2,11 @@ import os
 import time
 import uuid
 
-import logfire
+try:
+    import logfire
+except ImportError:
+    logfire = None
+
 import requests
 import streamlit as st
 from dotenv import load_dotenv

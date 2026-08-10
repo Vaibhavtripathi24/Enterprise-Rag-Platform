@@ -38,6 +38,7 @@ pdfplumber                  # Fallback PDF parser for scanned/complex layouts
 
 # --- OBSERVABILITY & DISTRIBUTED TRACING ---
 langsmith                   # Specialized tracing for LangChain/LangGraph
+logfire                     # Base Logfire SDK
 logfire[fastapi,requests]   # Pydantic Logfire — FastAPI + requests instrumentation
 loguru                      # Enhanced logging for Python
 
