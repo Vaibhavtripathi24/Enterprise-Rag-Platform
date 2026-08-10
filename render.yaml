@@ -1,14 +1,12 @@
 services:
   - type: web
     name: enterprise-rag-api
-    env: python
+    env: docker
+    dockerfilePath: Dockerfile
     region: singapore
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port 8080
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
       - key: STRICT_STARTUP
         value: "false"
       - key: LOGFIRE_IGNORE_NO_CONFIG
@@ -16,13 +14,11 @@ services:
 
   - type: web
     name: enterprise-rag-ui
-    env: python
+    env: docker
+    dockerfilePath: Dockerfile
     region: singapore
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run ui/app.py --server.port $PORT --server.address 0.0.0.0
+    dockerCommand: streamlit run ui/app.py --server.port 8501 --server.address 0.0.0.0
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
       - key: LOGFIRE_IGNORE_NO_CONFIG
         value: "1"
