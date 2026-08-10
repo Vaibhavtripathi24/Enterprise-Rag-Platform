@@ -100,7 +100,9 @@ def _check_qdrant() -> ConnectionResult:
 
 
 def _check_portkey_gateway() -> ConnectionResult:
-    """Verify LLM provider (Groq or Portkey) responds to a minimal completion."""
+    """Verify LLM provider responds to a minimal completion."""
+    if not settings.GROQ_API_KEY and not settings.PORTKEY_PRIMARY_CONFIG_ID and not settings.OPENAI_API_KEY:
+        return ConnectionResult("llm_gateway", False, "No LLM API keys configured")
     try:
         model = settings.GROQ_MODEL if settings.GROQ_API_KEY else f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini"
         provider_name = "Groq LLM" if settings.GROQ_API_KEY else "Portkey gateway"
@@ -108,7 +110,7 @@ def _check_portkey_gateway() -> ConnectionResult:
             model=model,
             messages=[{"role": "user", "content": "Say hello in one word."}],
             max_completion_tokens=100,
-            timeout=10,
+            timeout=3,
         )
         if resp.choices and resp.choices[0].message.content is not None:
             return ConnectionResult("llm_gateway", True, f"{provider_name} reachable")
@@ -219,11 +221,14 @@ _CHECKERS: list[Callable[[], ConnectionResult]] = [
 
 
 def check_all_connections() -> dict[str, ConnectionResult]:
-    """Run all connection checks and return a map of service name to result."""
+    """Run all connection checks safely and return a map of service name to result."""
     results: dict[str, ConnectionResult] = {}
     for checker in _CHECKERS:
-        result = checker()
-        results[result.name] = result
+        try:
+            result = checker()
+            results[result.name] = result
+        except Exception as e:
+            results[checker.__name__] = ConnectionResult("service", False, str(e))
     return results
 
 
