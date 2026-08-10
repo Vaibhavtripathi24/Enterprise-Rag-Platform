@@ -236,7 +236,7 @@ if prompt := st.chat_input("Ask about your documentation..."):
                                 with st.expander(f"Chunk {i + 1}: {preview}"):
                                     st.info(source)
                 except Exception as e:
-                    logfire.error(f"❌ UI-Backend Connection Failed: {e}")
+                    safe_log_warn(f"❌ UI-Backend Connection Exception: {e}")
                     status.update(label="❌ Connection Failed", state="error")
                     st.error(f"Backend Offline or job failed: {e}")
                     st.stop()
@@ -253,4 +253,4 @@ if prompt := st.chat_input("Ask about your documentation..."):
 
             answer_placeholder.markdown(full_answer)
             st.session_state.messages.append({"role": "assistant", "content": full_answer})
-            logfire.info("✅ Chat cycle completed successfully.")
+            safe_log_info("✅ Chat cycle completed successfully.")
