@@ -1,6 +1,10 @@
 import os
+import sys
 import time
 import uuid
+
+# Guarantee repository root is on sys.path for app package imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import requests
 import streamlit as st

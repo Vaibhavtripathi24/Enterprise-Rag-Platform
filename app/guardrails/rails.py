@@ -48,17 +48,14 @@ def guard(message: str) -> tuple[bool, str | None]:
             return False, None
         result = rails.generate(messages=[{"role": "user", "content": message}])
 
-            # NeMo returns {'role': 'assistant', 'content': '...'} — extract text
-            content = result.get("content", "") if isinstance(result, dict) else str(result)
+        # NeMo returns {'role': 'assistant', 'content': '...'} — extract text
+        content = result.get("content", "") if isinstance(result, dict) else str(result)
 
-            fired = any(indicator in content for indicator in RAIL_INDICATORS)
+        fired = any(indicator in content for indicator in RAIL_INDICATORS)
 
-            if fired:
-                logfire.info(f"🛡️ Guardrails fired | query='{message[:80]}'")
-                return True, content
+        if fired:
+            return True, content
 
-            logfire.info("✅ Guardrails passed.")
-            return False, None
-        except Exception as e:
-            logfire.warning(f"⚠️ Guardrails check failed ({e}); bypassing gate.")
-            return False, None
+        return False, None
+    except Exception as e:
+        return False, None
