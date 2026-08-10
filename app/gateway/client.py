@@ -15,11 +15,7 @@ from app.config import settings
 def _make_headers(feature: str = "rag") -> dict:
     """Build Portkey headers that reference the primary saved config by ID."""
     if not settings.PORTKEY_PRIMARY_CONFIG_ID:
-        raise ValueError(
-            "PORTKEY_PRIMARY_CONFIG_ID is not set in .env. "
-            "Get the real pc-... ID from the Portkey dashboard or "
-            "run: PYTHONPATH=. python scripts/list_portkey_configs.py"
-        )
+        return {}
     return createHeaders(
         api_key=settings.PORTKEY_API_KEY,
         config_id=settings.PORTKEY_PRIMARY_CONFIG_ID,
@@ -36,17 +32,21 @@ if settings.GROQ_API_KEY:
         api_key=settings.GROQ_API_KEY,
         base_url="https://api.groq.com/openai/v1",
     )
-else:
+elif settings.PORTKEY_PRIMARY_CONFIG_ID:
     portkey_client = OpenAI(
         api_key=settings.PORTKEY_API_KEY,
         base_url=PORTKEY_GATEWAY_URL,
         default_headers=_make_headers(),
     )
+else:
+    portkey_client = OpenAI(
+        api_key=settings.OPENAI_API_KEY or "dummy_key",
+    )
 
 
 def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
     """
-    Returns a ChatOpenAI client — using Groq if GROQ_API_KEY is set, or Portkey.
+    Returns a ChatOpenAI client — using Groq if GROQ_API_KEY is set, Portkey if configured, or direct OpenAI.
     """
     if settings.GROQ_API_KEY:
         return ChatOpenAI(
@@ -54,27 +54,36 @@ def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
             base_url="https://api.groq.com/openai/v1",
             model=settings.GROQ_MODEL,
         )
+    if settings.PORTKEY_PRIMARY_CONFIG_ID:
+        return ChatOpenAI(
+            api_key=settings.PORTKEY_API_KEY,
+            base_url=PORTKEY_GATEWAY_URL,
+            model=f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini",
+            default_headers=_make_headers(feature),
+        )
     return ChatOpenAI(
-        api_key=settings.PORTKEY_API_KEY,
-        base_url=PORTKEY_GATEWAY_URL,
-        model=f"@{settings.PORTKEY_PRIMARY_SLUG}/gpt-4o-mini",
-        default_headers=_make_headers(feature),
+        api_key=settings.OPENAI_API_KEY or "dummy_key",
+        model="gpt-4o-mini",
     )
 
 
 def get_async_openai_client(feature: str = "rag") -> AsyncOpenAI:
     """
-    Returns an async OpenAI client — using Groq if GROQ_API_KEY is set, or Portkey.
+    Returns an async OpenAI client — using Groq if GROQ_API_KEY is set, Portkey if configured, or direct OpenAI.
     """
     if settings.GROQ_API_KEY:
         return AsyncOpenAI(
             api_key=settings.GROQ_API_KEY,
             base_url="https://api.groq.com/openai/v1",
         )
+    if settings.PORTKEY_PRIMARY_CONFIG_ID:
+        return AsyncOpenAI(
+            api_key=settings.PORTKEY_API_KEY,
+            base_url=PORTKEY_GATEWAY_URL,
+            default_headers=_make_headers(feature),
+        )
     return AsyncOpenAI(
-        api_key=settings.PORTKEY_API_KEY,
-        base_url=PORTKEY_GATEWAY_URL,
-        default_headers=_make_headers(feature),
+        api_key=settings.OPENAI_API_KEY or "dummy_key",
     )
 
 
