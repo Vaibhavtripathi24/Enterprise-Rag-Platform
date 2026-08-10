@@ -13,12 +13,12 @@ from app.config import settings
 def create_checkpointer() -> BaseCheckpointSaver:
     """
     Create a durable Postgres checkpointer for production.
-    Falls back to in-memory MemorySaver only if Postgres is unreachable.
-
-    Note: we run setup() through a single autocommit connection because
-    LangGraph's migrations include CREATE INDEX CONCURRENTLY, which Neon
-    rejects when run inside a transaction (the default ConnectionPool mode).
+    Falls back to in-memory MemorySaver only if Postgres is unreachable or unset.
     """
+    if not settings.NEON_DB_URL:
+        logfire.info("NEON_DB_URL not set — using in-memory MemorySaver checkpointer.")
+        return MemorySaver()
+
     try:
         from langgraph.checkpoint.postgres import PostgresSaver
         from psycopg_pool import ConnectionPool

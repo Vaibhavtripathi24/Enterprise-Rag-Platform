@@ -70,6 +70,8 @@ def _init_rate_limiter():
     from slowapi.util import get_remote_address
 
     try:
+        if not settings.UPSTASH_REDIS_REST_URL:
+            raise ValueError("UPSTASH_REDIS_REST_URL not configured")
         storage = RedisStorage(settings.redis_url)
         # `storage.check()` returns False silently on some failures; ping the
         # underlying Redis client so we only use Redis when it is really reachable.
