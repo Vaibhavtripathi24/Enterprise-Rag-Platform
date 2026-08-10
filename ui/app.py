@@ -112,7 +112,7 @@ with st.sidebar:
     st.success(f"Logfire: {LOGFIRE_STATUS}")
     st.info(f"Memory ID: {st.session_state.session_id[:8]}")
 
-    if st.button("🗑️ Clear History & Memory", key="clear_memory_btn", width="stretch", type="primary"):
+    if st.button("🗑️ Clear History & Memory", key=f"btn_clear_{st.session_state.session_id[:8]}", width="stretch", type="primary"):
         safe_log_warn(f"🗑️ Memory Wipe Triggered for session: {st.session_state.session_id}")
         st.session_state.messages = []
         st.session_state.session_id = str(uuid.uuid4())
@@ -129,7 +129,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Chat Input
-if prompt := st.chat_input("Ask about your documentation...", key="user_chat_input"):
+if prompt := st.chat_input("Ask about your documentation...", key=f"input_chat_{st.session_state.session_id[:8]}"):
     # START TRACE: User Interaction
     with safe_span("💬 User Chat Interaction", user_query=prompt, session_id=st.session_state.session_id):
         st.session_state.messages.append({"role": "user", "content": prompt})
