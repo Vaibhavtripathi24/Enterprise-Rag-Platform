@@ -10,23 +10,26 @@ _rails: LLMRails | None = None
 
 def initialize_rails() -> None:
     """
-    Build the NeMo LLMRails singleton at app startup.
-    Uses OpenAI gpt-4o-mini for fast intent classification at the gate.
+    Mark NeMo guardrails ready for lazy initialization.
+    LLMRails builds lazily on first query to ensure instant port binding.
     """
+    logfire.info("🛡️ NeMo Guardrails registered for lazy initialization.")
+
+
+def _get_rails() -> LLMRails:
     global _rails
+    if _rails is not None:
+        return _rails
 
     if settings.GROQ_API_KEY:
         guard_llm = ChatOpenAI(api_key=settings.GROQ_API_KEY, base_url="https://api.groq.com/openai/v1", model=settings.GROQ_MODEL)
-        model_desc = f"Groq {settings.GROQ_MODEL}"
     else:
         api_key = settings.OPENAI_API_KEY or "sk-dummy-key-for-initial-setup"
         guard_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
-        model_desc = "gpt-4o-mini"
 
     config = RailsConfig.from_content(colang_content=COLANG_CONTENT, yaml_content=YAML_CONTENT)
-
     _rails = LLMRails(config, llm=guard_llm)
-    logfire.info(f"🛡️ NeMo Guardrails initialised ({model_desc}).")
+    return _rails
 
 
 def guard(message: str) -> tuple[bool, str | None]:
@@ -38,13 +41,10 @@ def guard(message: str) -> tuple[bool, str | None]:
                                 skip the RAG pipeline entirely.
         (False, None)          — message is clean; proceed to LangGraph.
     """
-    if _rails is None:
-        logfire.warning("⚠️ Guardrails not initialised — skipping gate.")
-        return False, None
-
     with logfire.span("🛡️ Guardrails Check"):
         try:
-            result = _rails.generate(messages=[{"role": "user", "content": message}])
+            rails = _get_rails()
+            result = rails.generate(messages=[{"role": "user", "content": message}])
 
             # NeMo returns {'role': 'assistant', 'content': '...'} — extract text
             content = result.get("content", "") if isinstance(result, dict) else str(result)
